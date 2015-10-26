@@ -26,9 +26,8 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git://github.com/inreachventures/aws-signing-request-interceptor.git</connection>
-        <developerConnection>scm:git:git@github.com:inreachventures:aws-signing-request-interceptor.git</developerConnection>
-        <url>http://github.com/inreachventures/aws-signing-request-interceptor/</url>
+        <connection>scm:git:git@github.com:inreachventures/aws-signing-request-interceptor.git</connection>
+        <url>https://github.com/inreachventures/aws-signing-request-interceptor</url>
         <tag>HEAD</tag>
     </scm>
 
