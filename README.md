@@ -1,8 +1,9 @@
-# aws-signing-request-interceptor
+aws-signing-request-interceptor
+===
 
-Request Interceptor for Apache Client that signs the request for AWS
+Request Interceptor for Apache Client that signs the request for AWS. 
 
-Originally created to support AWS' (Elasticsearch Service)[https://aws.amazon.com/elasticsearch-service/] using the (Jest client)[https://github.com/searchbox-io/Jest].
+Originally created to support AWS' [Elasticsearch Service](https://aws.amazon.com/elasticsearch-service/) using the [Jest client](https://github.com/searchbox-io/Jest).
 
 Usage
 -----
