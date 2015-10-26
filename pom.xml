@@ -8,6 +8,7 @@
     <packaging>pom</packaging>
 
     <name>AWS Signing Request Interceptor</name>
+    <description>Request Interceptor for Apache Client that signs the request for AWS</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
