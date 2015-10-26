@@ -27,6 +27,16 @@ final JestClientFactory factory = new JestClientFactory() {
 };
 ```
 
+The project can be found in maven central:
+
+```xml
+<dependency>
+    <groupId>vc.inreach.aws</groupId>
+    <artifactId>aws-signing-request-interceptor</artifactId>
+    <version>0.0.2</version>
+</dependency>
+```
+
 TODO
 ----
 
