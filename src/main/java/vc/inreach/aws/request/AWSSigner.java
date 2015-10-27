@@ -15,7 +15,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
@@ -52,8 +51,9 @@ public class AWSSigner {
             .toFormatter();
     private static final String EMPTY = "";
     private static final String ZERO = "0";
-    private static final String AUTHORIZATION = "Authorization";
+    private static final Joiner AMPERSAND_JOINER = Joiner.on('&');
     private static final String CONTENT_LENGTH = "Content-Length";
+    private static final String AUTHORIZATION = "Authorization";
 
     private final String awsAccessKeyId;
     private final String awsSecretKey;
@@ -73,17 +73,16 @@ public class AWSSigner {
         this.clock = clock;
     }
 
-    public Map<String, Object> getSignedHeaders(String uri, String method, Optional<String> queryParams, Map<String, Object> headers, Optional<byte[]> payload) {
+    public Map<String, Object> getSignedHeaders(String uri, String method, Map<String, String> queryParams, Map<String, Object> headers, Optional<byte[]> payload) {
         final LocalDateTime now = clock.get();
         final ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
         result.putAll(headers);
         result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
 
-        final SortedMap<String, Object> headersSorted = new TreeMap<>(result.build());
         final StringBuilder headersString = new StringBuilder();
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
 
-        for (Map.Entry<String, Object> entry : headersSorted.entrySet()) {
+        for (Map.Entry<String, Object> entry : new TreeMap<>(result.build()).entrySet()) {
             headersString.append(headerAsString(entry)).append(RETURN);
             signedHeaders.add(entry.getKey().toLowerCase());
         }
@@ -91,7 +90,7 @@ public class AWSSigner {
         final String signedHeaderKeys = JOINER.join(signedHeaders.build());
         final String canonicalRequest = method + RETURN +
                 uri + RETURN +
-                queryParams.or(EMPTY) + RETURN +
+                queryParamsString(queryParams) + RETURN +
                 headersString.toString() + RETURN +
                 signedHeaderKeys + RETURN +
                 toBase16(hash(payload.or(EMPTY.getBytes(Charsets.UTF_8))));
@@ -103,6 +102,16 @@ public class AWSSigner {
 
         result.put(AUTHORIZATION, autorizationHeader);
         return result.build();
+    }
+
+    private String queryParamsString(Map<String, String> queryParams) {
+        final ImmutableList.Builder<String> result = ImmutableList.builder();
+
+        for (Map.Entry<String, String> param : new TreeMap<>(queryParams).entrySet()) {
+            result.add(param.getKey() + '=' + param.getValue());
+        }
+
+        return AMPERSAND_JOINER.join(result.build());
     }
 
     private String headerAsString(Map.Entry<String, Object> header) {

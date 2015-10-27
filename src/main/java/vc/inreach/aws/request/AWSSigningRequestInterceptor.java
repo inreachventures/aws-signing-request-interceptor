@@ -1,8 +1,6 @@
 package vc.inreach.aws.request;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
+import com.google.common.base.*;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import org.apache.http.*;
@@ -16,6 +14,8 @@ import java.util.stream.Collectors;
 
 public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
 
+    private static final Splitter.MapSplitter SPLITTER = Splitter.on('&').trimResults().withKeyValueSeparator('=');
+
     private final AWSSigner signer;
 
     public AWSSigningRequestInterceptor(AWSSigner signer) {
@@ -25,7 +25,7 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
     @Override
     public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
         request.setHeaders(headers(signer.getSignedHeaders(
-                        request.getRequestLine().getUri(),
+                        path(request),
                         request.getRequestLine().getMethod(),
                         params(request),
                         headers(request),
@@ -33,8 +33,16 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
         ));
     }
 
-    private Optional<String> params(HttpRequest request) {
-        return Optional.fromNullable(((HttpRequestWrapper) request).getURI().getQuery());
+    private Map<String, String> params(HttpRequest request) {
+        final String query = ((HttpRequestWrapper) request).getURI().getQuery();
+        if (Strings.isNullOrEmpty(query)) {
+            return ImmutableMap.of();
+        }
+        return SPLITTER.split(query);
+    }
+
+    private String path(HttpRequest request) {
+        return ((HttpRequestWrapper) request).getURI().getPath();
     }
 
     private Map<String, Object> headers(HttpRequest request) {
