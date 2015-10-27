@@ -4,7 +4,7 @@
 
     <groupId>vc.inreach.aws</groupId>
     <artifactId>aws-signing-request-interceptor</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>AWS Signing Request Interceptor</name>
@@ -29,7 +29,7 @@
     <scm>
         <connection>scm:git:git@github.com:inreachventures/aws-signing-request-interceptor.git</connection>
         <url>https://github.com/inreachventures/aws-signing-request-interceptor</url>
-        <tag>aws-signing-request-interceptor-0.0.4</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <developers>
