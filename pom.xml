@@ -5,7 +5,7 @@
     <groupId>vc.inreach.aws</groupId>
     <artifactId>aws-signing-request-interceptor</artifactId>
     <version>0.0.4-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <name>AWS Signing Request Interceptor</name>
     <description>Request Interceptor for Apache Client that signs the request for AWS</description>
