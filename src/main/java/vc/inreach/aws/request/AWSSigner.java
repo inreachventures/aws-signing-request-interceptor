@@ -1,21 +1,28 @@
 package vc.inreach.aws.request;
 
-import com.google.common.base.*;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import org.apache.commons.codec.binary.Hex;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.Map;
 import java.util.TreeMap;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Hex;
+import org.joda.time.LocalDateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
+import org.joda.time.format.ISODateTimeFormat;
+
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Inspired By: http://pokusak.blogspot.co.uk/2015/10/aws-elasticsearch-request-signing.html
@@ -39,14 +46,13 @@ public class AWSSigner {
     private static final String CONNECTION = "connection";
     private static final String CLOSE = ":close";
     private static final DateTimeFormatter BASIC_TIME_FORMAT = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .appendValue(ChronoField.YEAR, 4)
-            .appendValue(ChronoField.MONTH_OF_YEAR, 2)
-            .appendValue(ChronoField.DAY_OF_MONTH, 2)
+            .appendYear(4, 4)
+            .appendMonthOfYear(2)
+            .appendDayOfMonth(2)
             .appendLiteral('T')
-            .appendValue(ChronoField.HOUR_OF_DAY, 2)
-            .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
-            .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+            .appendHourOfDay(2)
+            .appendMinuteOfHour(2)
+            .appendSecondOfMinute(2)
             .appendLiteral('Z')
             .toFormatter();
     private static final String EMPTY = "";
@@ -55,19 +61,13 @@ public class AWSSigner {
     private static final String CONTENT_LENGTH = "Content-Length";
     private static final String AUTHORIZATION = "Authorization";
 
-    private final String awsAccessKeyId;
-    private final String awsSecretKey;
+    private final AWSCredentialsProvider awsCredentialsProvider;
     private final String region;
     private final String service;
     private final Supplier<LocalDateTime> clock;
 
-    public AWSSigner(String awsAccessKeyId,
-                     String awsSecretKey,
-                     String region,
-                     String service,
-                     Supplier<LocalDateTime> clock) {
-        this.awsAccessKeyId = awsAccessKeyId;
-        this.awsSecretKey = awsSecretKey;
+    public AWSSigner(AWSCredentialsProvider awsCredentialsProvider, String region, String service, Supplier<LocalDateTime> clock) {
+        this.awsCredentialsProvider = awsCredentialsProvider;
         this.region = region;
         this.service = service;
         this.clock = clock;
@@ -77,7 +77,7 @@ public class AWSSigner {
         final LocalDateTime now = clock.get();
         final ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
         result.putAll(headers);
-        result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
+        result.put(X_AMZ_DATE, BASIC_TIME_FORMAT.print(now));
 
         final StringBuilder headersString = new StringBuilder();
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
@@ -96,6 +96,7 @@ public class AWSSigner {
                 toBase16(hash(payload.or(EMPTY.getBytes(Charsets.UTF_8))));
         final String stringToSign = createStringToSign(canonicalRequest, now);
         final String signature = sign(stringToSign, now);
+        String awsAccessKeyId = awsCredentialsProvider.getCredentials().getAWSAccessKeyId();
         final String autorizationHeader = AWS4_HMAC_SHA256_CREDENTIAL + awsAccessKeyId + SLASH + getCredentialScope(now) +
                 SIGNED_HEADERS + signedHeaderKeys +
                 SIGNATURE + signature;
@@ -131,13 +132,13 @@ public class AWSSigner {
 
     private String createStringToSign(String canonicalRequest, LocalDateTime now) {
         return AWS4_HMAC_SHA256 +
-                now.format(BASIC_TIME_FORMAT) + RETURN +
+                BASIC_TIME_FORMAT.print(now) + RETURN +
                 getCredentialScope(now) + RETURN +
                 toBase16(hash(canonicalRequest.getBytes(Charsets.UTF_8)));
     }
 
     private String getCredentialScope(LocalDateTime now) {
-        return now.format(DateTimeFormatter.BASIC_ISO_DATE) + SLASH + region + SLASH + service + AWS4_REQUEST;
+        return ISODateTimeFormat.basicDate().print(now) + SLASH + region + SLASH + service + AWS4_REQUEST;
     }
 
     private byte[] hash(byte[] payload) {
@@ -160,8 +161,9 @@ public class AWSSigner {
     }
 
     private byte[] getSignatureKey(LocalDateTime now) {
+        String awsSecretKey = awsCredentialsProvider.getCredentials().getAWSSecretKey();
         final byte[] kSecret = (AWS4 + awsSecretKey).getBytes(Charsets.UTF_8);
-        final byte[] kDate = hmacSHA256(now.format(DateTimeFormatter.BASIC_ISO_DATE), kSecret);
+        final byte[] kDate = hmacSHA256(ISODateTimeFormat.basicDate().print(now), kSecret);
         final byte[] kRegion = hmacSHA256(region, kDate);
         final byte[] kService = hmacSHA256(service, kRegion);
         return hmacSHA256(AWS_4_REQUEST, kService);
