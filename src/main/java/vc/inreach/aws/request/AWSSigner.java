@@ -15,7 +15,11 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.ISODateTimeFormat;
 
+import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSSessionCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.BasicSessionCredentials;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -33,6 +37,7 @@ public class AWSSigner {
     private static final String HMAC_SHA256 = "HmacSHA256";
     private static final String SLASH = "/";
     private static final String X_AMZ_DATE = "x-amz-date";
+    private static final String X_AMZ_SECURITY_TOKEN = "x-amz-security-token";
     private static final String RETURN = "\n";
     private static final String AWS4_HMAC_SHA256 = "AWS4-HMAC-SHA256\n";
     private static final String AWS4_REQUEST = "/aws4_request";
@@ -79,6 +84,12 @@ public class AWSSigner {
         result.putAll(headers);
         result.put(X_AMZ_DATE, BASIC_TIME_FORMAT.print(now));
 
+        AWSCredentials credentials = sanitizeCredentials(awsCredentialsProvider.getCredentials());
+        if (credentials instanceof AWSSessionCredentials) {
+            AWSSessionCredentials sessionCredentials = (AWSSessionCredentials) credentials;
+            result.put(X_AMZ_SECURITY_TOKEN, sessionCredentials.getSessionToken());
+        }
+
         final StringBuilder headersString = new StringBuilder();
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
 
@@ -95,8 +106,8 @@ public class AWSSigner {
                 signedHeaderKeys + RETURN +
                 toBase16(hash(payload.or(EMPTY.getBytes(Charsets.UTF_8))));
         final String stringToSign = createStringToSign(canonicalRequest, now);
-        final String signature = sign(stringToSign, now);
-        String awsAccessKeyId = awsCredentialsProvider.getCredentials().getAWSAccessKeyId();
+        final String signature = sign(stringToSign, now, credentials);
+        String awsAccessKeyId = credentials.getAWSAccessKeyId();
         final String autorizationHeader = AWS4_HMAC_SHA256_CREDENTIAL + awsAccessKeyId + SLASH + getCredentialScope(now) +
                 SIGNED_HEADERS + signedHeaderKeys +
                 SIGNATURE + signature;
@@ -126,8 +137,8 @@ public class AWSSigner {
         return header.getKey().toLowerCase() + ':' + header.getValue();
     }
 
-    private String sign(String stringToSign, LocalDateTime now) {
-        return Hex.encodeHexString(hmacSHA256(stringToSign, getSignatureKey(now)));
+    private String sign(String stringToSign, LocalDateTime now, AWSCredentials credentials) {
+        return Hex.encodeHexString(hmacSHA256(stringToSign, getSignatureKey(now, credentials)));
     }
 
     private String createStringToSign(String canonicalRequest, LocalDateTime now) {
@@ -160,8 +171,8 @@ public class AWSSigner {
         return hexBuffer.toString();
     }
 
-    private byte[] getSignatureKey(LocalDateTime now) {
-        String awsSecretKey = awsCredentialsProvider.getCredentials().getAWSSecretKey();
+    private byte[] getSignatureKey(LocalDateTime now, AWSCredentials credentials) {
+        String awsSecretKey = credentials.getAWSSecretKey();
         final byte[] kSecret = (AWS4 + awsSecretKey).getBytes(Charsets.UTF_8);
         final byte[] kDate = hmacSHA256(ISODateTimeFormat.basicDate().print(now), kSecret);
         final byte[] kRegion = hmacSHA256(region, kDate);
@@ -177,5 +188,35 @@ public class AWSSigner {
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    /**
+     * Borrowed from AWS SDK.
+     * 
+     * @see com.amazonaws.auth.AbstractAWSSigner#sanitizeCredentials(AWSCredentials)
+     */
+    private AWSCredentials sanitizeCredentials(AWSCredentials credentials) {
+        String accessKeyId = null;
+        String secretKey = null;
+        String token = null;
+        synchronized (credentials) {
+            accessKeyId = credentials.getAWSAccessKeyId();
+            secretKey = credentials.getAWSSecretKey();
+            if (credentials instanceof AWSSessionCredentials) {
+                token = ((AWSSessionCredentials) credentials).getSessionToken();
+            }
+        }
+        if (secretKey != null)
+            secretKey = secretKey.trim();
+        if (accessKeyId != null)
+            accessKeyId = accessKeyId.trim();
+        if (token != null)
+            token = token.trim();
+
+        if (credentials instanceof AWSSessionCredentials) {
+            return new BasicSessionCredentials(accessKeyId, secretKey, token);
+        }
+
+        return new BasicAWSCredentials(accessKeyId, secretKey);
     }
 }
