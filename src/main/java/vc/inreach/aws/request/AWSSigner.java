@@ -1,5 +1,7 @@
 package vc.inreach.aws.request;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -55,19 +57,16 @@ public class AWSSigner {
     private static final String CONTENT_LENGTH = "Content-Length";
     private static final String AUTHORIZATION = "Authorization";
 
-    private final String awsAccessKeyId;
-    private final String awsSecretKey;
+    private final AWSCredentialsProvider credentialsProvider;
     private final String region;
     private final String service;
     private final Supplier<LocalDateTime> clock;
 
-    public AWSSigner(String awsAccessKeyId,
-                     String awsSecretKey,
+    public AWSSigner(AWSCredentialsProvider credentialsProvider,
                      String region,
                      String service,
                      Supplier<LocalDateTime> clock) {
-        this.awsAccessKeyId = awsAccessKeyId;
-        this.awsSecretKey = awsSecretKey;
+        this.credentialsProvider = credentialsProvider;
         this.region = region;
         this.service = service;
         this.clock = clock;
@@ -75,6 +74,7 @@ public class AWSSigner {
 
     public Map<String, Object> getSignedHeaders(String uri, String method, Map<String, String> queryParams, Map<String, Object> headers, Optional<byte[]> payload) {
         final LocalDateTime now = clock.get();
+        final AWSCredentials credentials = credentialsProvider.getCredentials();
         final ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
         result.putAll(headers);
         result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
@@ -95,8 +95,8 @@ public class AWSSigner {
                 signedHeaderKeys + RETURN +
                 toBase16(hash(payload.or(EMPTY.getBytes(Charsets.UTF_8))));
         final String stringToSign = createStringToSign(canonicalRequest, now);
-        final String signature = sign(stringToSign, now);
-        final String autorizationHeader = AWS4_HMAC_SHA256_CREDENTIAL + awsAccessKeyId + SLASH + getCredentialScope(now) +
+        final String signature = sign(stringToSign, now, credentials);
+        final String autorizationHeader = AWS4_HMAC_SHA256_CREDENTIAL + credentials.getAWSAccessKeyId() + SLASH + getCredentialScope(now) +
                 SIGNED_HEADERS + signedHeaderKeys +
                 SIGNATURE + signature;
 
@@ -125,8 +125,8 @@ public class AWSSigner {
         return header.getKey().toLowerCase() + ':' + header.getValue();
     }
 
-    private String sign(String stringToSign, LocalDateTime now) {
-        return Hex.encodeHexString(hmacSHA256(stringToSign, getSignatureKey(now)));
+    private String sign(String stringToSign, LocalDateTime now, AWSCredentials credentials) {
+        return Hex.encodeHexString(hmacSHA256(stringToSign, getSignatureKey(now, credentials)));
     }
 
     private String createStringToSign(String canonicalRequest, LocalDateTime now) {
@@ -159,8 +159,8 @@ public class AWSSigner {
         return hexBuffer.toString();
     }
 
-    private byte[] getSignatureKey(LocalDateTime now) {
-        final byte[] kSecret = (AWS4 + awsSecretKey).getBytes(Charsets.UTF_8);
+    private byte[] getSignatureKey(LocalDateTime now, AWSCredentials credentials) {
+        final byte[] kSecret = (AWS4 + credentials.getAWSSecretKey()).getBytes(Charsets.UTF_8);
         final byte[] kDate = hmacSHA256(now.format(DateTimeFormatter.BASIC_ISO_DATE), kSecret);
         final byte[] kRegion = hmacSHA256(region, kDate);
         final byte[] kService = hmacSHA256(service, kRegion);
