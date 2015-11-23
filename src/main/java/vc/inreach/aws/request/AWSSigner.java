@@ -26,6 +26,7 @@ public class AWSSigner {
     private static final String HMAC_SHA256 = "HmacSHA256";
     private static final String SLASH = "/";
     private static final String X_AMZ_DATE = "x-amz-date";
+    private static final String X_AMZ_SECURITY_TOKEN = "x-amz-security-token";
     private static final String RETURN = "\n";
     private static final String AWS4_HMAC_SHA256 = "AWS4-HMAC-SHA256\n";
     private static final String AWS4_REQUEST = "/aws4_request";
@@ -57,6 +58,7 @@ public class AWSSigner {
 
     private final String awsAccessKeyId;
     private final String awsSecretKey;
+    private final String awsSessionToken;
     private final String region;
     private final String service;
     private final Supplier<LocalDateTime> clock;
@@ -66,8 +68,18 @@ public class AWSSigner {
                      String region,
                      String service,
                      Supplier<LocalDateTime> clock) {
+        this(awsAccessKeyId, awsSecretKey, null, region, service, clock);
+    }
+
+    public AWSSigner(String awsAccessKeyId,
+                     String awsSecretKey,
+                     String awsSessionToken,
+                     String region,
+                     String service,
+                     Supplier<LocalDateTime> clock) {
         this.awsAccessKeyId = awsAccessKeyId;
         this.awsSecretKey = awsSecretKey;
+        this.awsSessionToken = awsSessionToken;
         this.region = region;
         this.service = service;
         this.clock = clock;
@@ -78,6 +90,9 @@ public class AWSSigner {
         final ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
         result.putAll(headers);
         result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
+        if (awsSessionToken != null) {
+            result.put(X_AMZ_SECURITY_TOKEN, awsSessionToken);
+        }
 
         final StringBuilder headersString = new StringBuilder();
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
