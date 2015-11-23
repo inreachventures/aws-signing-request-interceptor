@@ -2,6 +2,7 @@ package vc.inreach.aws.request;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSSessionCredentials;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -56,6 +57,7 @@ public class AWSSigner {
     private static final Joiner AMPERSAND_JOINER = Joiner.on('&');
     private static final String CONTENT_LENGTH = "Content-Length";
     private static final String AUTHORIZATION = "Authorization";
+    private static final String SESSION_TOKEN = "x-amz-security-token";
 
     private final AWSCredentialsProvider credentialsProvider;
     private final String region;
@@ -78,6 +80,9 @@ public class AWSSigner {
         final ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
         result.putAll(headers);
         result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
+        if (AWSSessionCredentials.class.isAssignableFrom(credentials.getClass())) {
+            result.put(SESSION_TOKEN, ((AWSSessionCredentials) credentials).getSessionToken());
+        }
 
         final StringBuilder headersString = new StringBuilder();
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
