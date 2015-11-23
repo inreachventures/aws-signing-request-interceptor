@@ -56,8 +56,11 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
     }
 
     private Optional<byte[]> body(HttpRequest request) throws IOException {
-        final HttpEntityEnclosingRequest original = (HttpEntityEnclosingRequest) ((HttpRequestWrapper) request).getOriginal();
-        return Optional.fromNullable(original.getEntity()).transform(TO_BYTE_ARRAY);
+        final HttpRequest original = ((HttpRequestWrapper) request).getOriginal();
+        if (! HttpEntityEnclosingRequest.class.isAssignableFrom(original.getClass())) {
+            return Optional.absent();
+        }
+        return Optional.fromNullable(((HttpEntityEnclosingRequest) original).getEntity()).transform(TO_BYTE_ARRAY);
     }
 
     private Header[] headers(Map<String, Object> from) {
