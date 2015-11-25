@@ -6,6 +6,7 @@ import static java.lang.String.format;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.Test;
 
@@ -14,6 +15,7 @@ import vc.inreach.aws.request.AWSSigner;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.internal.StaticCredentialsProvider;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
@@ -32,10 +34,10 @@ public class AWSSignerTest {
         // Credentials
         String awsAccessKey = "AKIDEXAMPLE";
         String awsSecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
-        String region = "us-east-1";
-        String service = "host";
         AWSCredentials credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
         AWSCredentialsProvider awsCredentialsProvider = new StaticCredentialsProvider(credentials);
+        String region = "us-east-1";
+        String service = "host";
         
         // HTTP request
         String host = "host.foo.com";
@@ -66,12 +68,118 @@ public class AWSSignerTest {
                 awsAccessKey, region, service, expectedSignature
                 );
         
-        assertThat(signedHeaders).containsKey("Authorization");
-        assertThat(signedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
-        assertThat(signedHeaders).containsKey("Host");
-        assertThat(signedHeaders.get("Host")).isEqualTo(host);
-        assertThat(signedHeaders).containsKey("Date");
-        assertThat(signedHeaders.get("Date")).isEqualTo(date);
-        assertThat(signedHeaders).doesNotContainKey("X-Amz-Date");
+        TreeMap<String, Object> caseInsensitiveSignedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSignedHeaders.putAll(signedHeaders);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Authorization");
+        assertThat(caseInsensitiveSignedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Host");
+        assertThat(caseInsensitiveSignedHeaders.get("Host")).isEqualTo(host);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Date");
+        assertThat(caseInsensitiveSignedHeaders.get("Date")).isEqualTo(date);
+        assertThat(caseInsensitiveSignedHeaders).doesNotContainKey("X-Amz-Date");
+    }
+    
+    @Test
+    public void testGetVanillaWithoutDateHeader() throws Exception {
+        // GIVEN
+        // Credentials
+        String awsAccessKey = "AKIDEXAMPLE";
+        String awsSecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
+        AWSCredentials credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+        AWSCredentialsProvider awsCredentialsProvider = new StaticCredentialsProvider(credentials);
+        String region = "us-east-1";
+        String service = "host";
+        
+        // HTTP request
+        String host = "host.foo.com";
+        String uri = "/";
+        String method = "GET";
+        
+        // Date
+        Supplier<LocalDateTime> clock = () -> LocalDateTime.of(2011, 9, 9, 23, 36, 0);
+        // weird date : 09 Sep 2011 is a friday, not a monday
+        String date = "20110909T233600Z";
+
+        // WHEN
+        // The request is signed
+        AWSSigner signer = new AWSSigner(awsCredentialsProvider, region, service, clock);
+        Map<String, String> queryParams = new HashMap<>();
+        Map<String, Object> headers = ImmutableMap.<String, Object> builder()
+                .put("Host", host)
+                .build();
+        Optional<byte[]> payload = Optional.absent();
+        Map<String, Object> signedHeaders = signer.getSignedHeaders(uri, method, queryParams, headers, payload);
+
+        // THEN
+        // The signature must match the expected signature
+        String expectedSignature = "904f8c568bca8bd2618b9241a7f2a8d90f279e717fd0f6727af189668b040151";
+        String expectedAuthorizationHeader = format(
+                "AWS4-HMAC-SHA256 Credential=%s/20110909/%s/%s/aws4_request, SignedHeaders=host;x-amz-date, Signature=%s",
+                awsAccessKey, region, service, expectedSignature
+                );
+        
+        TreeMap<String, Object> caseInsensitiveSignedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSignedHeaders.putAll(signedHeaders);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Authorization");
+        assertThat(caseInsensitiveSignedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Host");
+        assertThat(caseInsensitiveSignedHeaders.get("Host")).isEqualTo(host);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("X-Amz-Date");
+        assertThat(caseInsensitiveSignedHeaders.get("X-Amz-Date")).isEqualTo(date);
+        assertThat(caseInsensitiveSignedHeaders).doesNotContainKey("Date");
+    }
+    
+    @Test
+    public void testGetVanillaWithTempCreds() throws Exception {
+        // GIVEN
+        // Credentials
+        String awsAccessKey = "AKIDEXAMPLE";
+        String awsSecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
+        String sessionToken = "AKIDEXAMPLESESSION";
+        AWSCredentials credentials = new BasicSessionCredentials(awsAccessKey, awsSecretKey, sessionToken);
+        AWSCredentialsProvider awsCredentialsProvider = new StaticCredentialsProvider(credentials);
+        String region = "us-east-1";
+        String service = "host";
+        
+        // HTTP request
+        String host = "host.foo.com";
+        String uri = "/";
+        String method = "GET";
+        
+        // Date
+        Supplier<LocalDateTime> clock = () -> LocalDateTime.of(2011, 9, 9, 23, 36, 0);
+        // weird date : 09 Sep 2011 is a friday, not a monday
+        String date = "Mon, 09 Sep 2011 23:36:00 GMT";
+
+        // WHEN
+        // The request is signed
+        AWSSigner signer = new AWSSigner(awsCredentialsProvider, region, service, clock);
+        Map<String, String> queryParams = new HashMap<>();
+        Map<String, Object> headers = ImmutableMap.<String, Object> builder()
+                .put("Date", date)
+                .put("Host", host)
+                .build();
+        Optional<byte[]> payload = Optional.absent();
+        Map<String, Object> signedHeaders = signer.getSignedHeaders(uri, method, queryParams, headers, payload);
+
+        // THEN
+        // The signature must match the expected signature
+        String expectedSignature = "43abd9e63c148feb91c43fe2c9734eb44b7eb16078d484d3ff9b6249b62fdc60";
+        String expectedAuthorizationHeader = format(
+                "AWS4-HMAC-SHA256 Credential=%s/20110909/%s/%s/aws4_request, SignedHeaders=date;host;x-amz-security-token, Signature=%s",
+                awsAccessKey, region, service, expectedSignature
+                );
+        
+        TreeMap<String, Object> caseInsensitiveSignedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSignedHeaders.putAll(signedHeaders);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Authorization");
+        assertThat(caseInsensitiveSignedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Host");
+        assertThat(caseInsensitiveSignedHeaders.get("Host")).isEqualTo(host);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Date");
+        assertThat(caseInsensitiveSignedHeaders.get("Date")).isEqualTo(date);
+        assertThat(caseInsensitiveSignedHeaders).doesNotContainKey("X-Amz-Date");
+        assertThat(caseInsensitiveSignedHeaders).containsKey("X-Amz-Security-Token");
+        assertThat(caseInsensitiveSignedHeaders.get("X-Amz-Security-Token")).isEqualTo(sessionToken);
     }
 }
