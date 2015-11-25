@@ -24,6 +24,11 @@ final JestClientFactory factory = new JestClientFactory() {
         builder.addInterceptorLast(new AWSSigningRequestInterceptor(awsSigner));
         return builder;
     }
+    @Override
+    protected HttpAsyncClientBuilder configureHttpClient(HttpAsyncClientBuilder builder) {
+        builder.addInterceptorLast(new AWSSigningRequestInterceptor(awsSigner));
+        return builder;
+    }
 };
 ```
 
