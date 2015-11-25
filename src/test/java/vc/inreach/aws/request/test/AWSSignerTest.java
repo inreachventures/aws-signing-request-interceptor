@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 public class AWSSignerTest {
     /**
      * Test case given in AWS Signing Test Suite (http://docs.aws.amazon.com/general/latest/gr/signature-v4-test-suite.html)
-     * (get-vanilla-query.*)
+     * (get-vanilla.*)
      * 
      * GET / http/1.1
      * Date:Mon, 09 Sep 2011 23:36:00 GMT
@@ -84,7 +84,7 @@ public class AWSSignerTest {
     }
     /**
      * Test case given in AWS Signing Test Suite (http://docs.aws.amazon.com/general/latest/gr/signature-v4-test-suite.html)
-     * (get-vanilla-query.*)
+     * (post-vanilla-query.*)
      * 
      * POST /?foo=bar http/1.1
      * Date:Mon, 09 Sep 2011 23:36:00 GMT
