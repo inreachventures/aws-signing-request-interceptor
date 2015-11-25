@@ -77,9 +77,11 @@ public class AWSSigner {
     public Map<String, Object> getSignedHeaders(String uri, String method, Map<String, String> queryParams, Map<String, Object> headers, Optional<byte[]> payload) {
         final LocalDateTime now = clock.get();
         final AWSCredentials credentials = credentialsProvider.getCredentials();
-        final ImmutableMap.Builder<String, Object> result = ImmutableMap.builder();
+        final Map<String, Object> result = new TreeMap<String, Object>(String.CASE_INSENSITIVE_ORDER);
         result.putAll(headers);
-        result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
+        if (!result.containsKey("date")) {
+            result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
+        }
         if (AWSSessionCredentials.class.isAssignableFrom(credentials.getClass())) {
             result.put(SESSION_TOKEN, ((AWSSessionCredentials) credentials).getSessionToken());
         }
@@ -87,7 +89,7 @@ public class AWSSigner {
         final StringBuilder headersString = new StringBuilder();
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
 
-        for (Map.Entry<String, Object> entry : new TreeMap<>(result.build()).entrySet()) {
+        for (Map.Entry<String, Object> entry : result.entrySet()) {
             headersString.append(headerAsString(entry)).append(RETURN);
             signedHeaders.add(entry.getKey().toLowerCase());
         }
@@ -106,7 +108,7 @@ public class AWSSigner {
                 SIGNATURE + signature;
 
         result.put(AUTHORIZATION, autorizationHeader);
-        return result.build();
+        return ImmutableMap.copyOf(result);
     }
 
     private String queryParamsString(Map<String, String> queryParams) {
