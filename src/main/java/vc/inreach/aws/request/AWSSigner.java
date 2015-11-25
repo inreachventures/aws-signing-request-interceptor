@@ -58,6 +58,7 @@ public class AWSSigner {
     private static final String CONTENT_LENGTH = "Content-Length";
     private static final String AUTHORIZATION = "Authorization";
     private static final String SESSION_TOKEN = "x-amz-security-token";
+    private static final String DATE = "date";
 
     private final AWSCredentialsProvider credentialsProvider;
     private final String region;
@@ -77,9 +78,9 @@ public class AWSSigner {
     public Map<String, Object> getSignedHeaders(String uri, String method, Map<String, String> queryParams, Map<String, Object> headers, Optional<byte[]> payload) {
         final LocalDateTime now = clock.get();
         final AWSCredentials credentials = credentialsProvider.getCredentials();
-        final Map<String, Object> result = new TreeMap<String, Object>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, Object> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         result.putAll(headers);
-        if (!result.containsKey("date")) {
+        if (!result.containsKey(DATE)) {
             result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
         }
         if (AWSSessionCredentials.class.isAssignableFrom(credentials.getClass())) {
