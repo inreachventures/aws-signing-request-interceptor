@@ -18,15 +18,16 @@ builder.addInterceptorLast(new AWSSigningRequestInterceptor(awsSigner));
 To be able to add the AWSSigningRequestInterceptor to Jest, and thus be able to sign requests to the Elasticsearch Service, you need to override the `configureHttpClient` method in the `JestClientFactory`.
 
 ```java
+final AWSSigningRequestInterceptor requestInterceptor = new AWSSigningRequestInterceptor(awsSigner);
 final JestClientFactory factory = new JestClientFactory() {
     @Override
     protected HttpClientBuilder configureHttpClient(HttpClientBuilder builder) {
-        builder.addInterceptorLast(new AWSSigningRequestInterceptor(awsSigner));
+        builder.addInterceptorLast(requestInterceptor);
         return builder;
     }
     @Override
     protected HttpAsyncClientBuilder configureHttpClient(HttpAsyncClientBuilder builder) {
-        builder.addInterceptorLast(new AWSSigningRequestInterceptor(awsSigner));
+        builder.addInterceptorLast(requestInterceptor);
         return builder;
     }
 };
