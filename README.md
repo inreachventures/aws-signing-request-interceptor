@@ -10,8 +10,11 @@ Usage
 
 You have to add the AWSSigningRequestInterceptor to the end of the Apache client request chain. Otherwise it won't have visibility of all of the headers being added to the request.
 
+This depends on the AWS core SDK as it relies on an AWSCredentialsProvider to get the key, secret and optional session token. It's advised that you use dependencyManagement to lock in the version of `aws-java-sdk-core` that works for your project.
+
+
 ```java
-final AWSSigner awsSigner = new AWSSigner(awsKey, awsSecret, REGION, SERVICE, clock);
+final AWSSigner awsSigner = new AWSSigner(awsCredentialsProvider, REGION, SERVICE, clock);
 builder.addInterceptorLast(new AWSSigningRequestInterceptor(awsSigner));
 ```
 
@@ -39,12 +42,6 @@ The project can be found in maven central:
 <dependency>
     <groupId>vc.inreach.aws</groupId>
     <artifactId>aws-signing-request-interceptor</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
-
-TODO
-----
-
-* Write tests
-* Allow different credential providers (maybe. it's quite nice not having to depend on an AWS SDK)
