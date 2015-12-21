@@ -45,3 +45,8 @@ The project can be found in maven central:
     <version>0.0.5</version>
 </dependency>
 ```
+
+Other Languages
+---------------
+
+If you're looking for a native Scala version of the AWSSigner then take a look at [@ticofab](https://github.com/ticofab/)'s port: https://github.com/ticofab/aws-request-signer
