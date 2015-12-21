@@ -10,6 +10,8 @@ import org.apache.commons.codec.binary.Hex;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -116,10 +118,18 @@ public class AWSSigner {
         final ImmutableList.Builder<String> result = ImmutableList.builder();
 
         for (Map.Entry<String, String> param : new TreeMap<>(queryParams).entrySet()) {
-            result.add(param.getKey() + '=' + param.getValue());
+            result.add(encodeQueryStringComponent(param.getKey()) + '=' + encodeQueryStringComponent(param.getValue()));
         }
 
         return AMPERSAND_JOINER.join(result.build());
+    }
+
+    private String encodeQueryStringComponent(String value) {
+        try {
+            return URLEncoder.encode(value, "UTF-8").replace("+", "%20").replace("*", "%2A").replace("%7E", "~");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private String headerAsString(Map.Entry<String, Object> header) {
