@@ -6,6 +6,8 @@ import com.amazonaws.auth.AWSSessionCredentials;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.escape.Escaper;
+import com.google.common.net.UrlEscapers;
 import org.apache.commons.codec.binary.Hex;
 
 import javax.crypto.Mac;
@@ -59,6 +61,7 @@ public class AWSSigner {
     private static final String AUTHORIZATION = "Authorization";
     private static final String SESSION_TOKEN = "x-amz-security-token";
     private static final String DATE = "date";
+    private static final Escaper ESCAPER = UrlEscapers.urlPathSegmentEscaper();
 
     private final AWSCredentialsProvider credentialsProvider;
     private final String region;
@@ -114,9 +117,8 @@ public class AWSSigner {
 
     private String queryParamsString(Map<String, String> queryParams) {
         final ImmutableList.Builder<String> result = ImmutableList.builder();
-
         for (Map.Entry<String, String> param : new TreeMap<>(queryParams).entrySet()) {
-            result.add(param.getKey() + '=' + param.getValue());
+            result.add(ESCAPER.escape(param.getKey()) + '=' + ESCAPER.escape(param.getValue()));
         }
 
         return AMPERSAND_JOINER.join(result.build());
