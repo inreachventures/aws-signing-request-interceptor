@@ -1,7 +1,9 @@
 package vc.inreach.aws.request;
 
 import com.google.common.base.*;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.google.common.io.ByteStreams;
 import org.apache.http.*;
 import org.apache.http.client.methods.HttpRequestWrapper;
@@ -14,7 +16,7 @@ import java.util.stream.Collectors;
 
 public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
 
-    private static final Splitter.MapSplitter SPLITTER = Splitter.on('&').trimResults().withKeyValueSeparator('=');
+    private static final Splitter SPLITTER = Splitter.on('&').trimResults().omitEmptyStrings();
 
     private final AWSSigner signer;
 
@@ -33,12 +35,25 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
         ));
     }
 
-    private Map<String, String> params(HttpRequest request) {
-        final String query = ((HttpRequestWrapper) request).getURI().getQuery();
-        if (Strings.isNullOrEmpty(query)) {
-            return ImmutableMap.of();
+    private Multimap<String, String> params(HttpRequest request) {
+        return params(((HttpRequestWrapper) request).getURI().getQuery());
+    }
+
+    private Multimap<String, String> params(String query) {
+        final ImmutableListMultimap.Builder<String, String> queryParams = ImmutableListMultimap.builder();
+
+        if (! Strings.isNullOrEmpty(query)) {
+            for (String pair : SPLITTER.split(query)) {
+                final int index = pair.indexOf('=');
+                if (index > 0 && pair.length() > index + 1) {
+                    final String key = pair.substring(0, index);
+                    final String value = pair.substring(index + 1);
+                    queryParams.put(key, value);
+                }
+            }
         }
-        return SPLITTER.split(query);
+
+        return queryParams.build();
     }
 
     private String path(HttpRequest request) {

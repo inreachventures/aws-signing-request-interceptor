@@ -6,6 +6,7 @@ import com.amazonaws.auth.AWSSessionCredentials;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.google.common.escape.Escaper;
 import com.google.common.net.UrlEscapers;
 import org.apache.commons.codec.binary.Hex;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -78,7 +80,11 @@ public class AWSSigner {
         this.clock = clock;
     }
 
-    public Map<String, Object> getSignedHeaders(String uri, String method, Map<String, String> queryParams, Map<String, Object> headers, Optional<byte[]> payload) {
+    public Map<String, Object> getSignedHeaders(String uri,
+                                                String method,
+                                                Multimap<String, String> queryParams,
+                                                Map<String, Object> headers,
+                                                Optional<byte[]> payload) {
         final LocalDateTime now = clock.get();
         final AWSCredentials credentials = credentialsProvider.getCredentials();
         final Map<String, Object> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
@@ -115,10 +121,12 @@ public class AWSSigner {
         return ImmutableMap.copyOf(result);
     }
 
-    private String queryParamsString(Map<String, String> queryParams) {
+    private String queryParamsString(Multimap<String, String> queryParams) {
         final ImmutableList.Builder<String> result = ImmutableList.builder();
-        for (Map.Entry<String, String> param : new TreeMap<>(queryParams).entrySet()) {
-            result.add(ESCAPER.escape(param.getKey()) + '=' + ESCAPER.escape(param.getValue()));
+        for (Map.Entry<String, Collection<String>> param : new TreeMap<>(queryParams.asMap()).entrySet()) {
+            for (String value: param.getValue()) {
+                result.add(ESCAPER.escape(param.getKey()) + '=' + ESCAPER.escape(value));
+            }
         }
 
         return AMPERSAND_JOINER.join(result.build());
