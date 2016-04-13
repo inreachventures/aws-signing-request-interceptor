@@ -3,6 +3,7 @@ package vc.inreach.aws.request;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSSessionCredentials;
+import com.amazonaws.util.SdkHttpUtils;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -106,7 +107,7 @@ public class AWSSigner {
 
         final String signedHeaderKeys = JOINER.join(signedHeaders.build());
         final String canonicalRequest = method + RETURN +
-                uri + RETURN +
+		        SdkHttpUtils.urlEncode(SdkHttpUtils.urlEncode(uri, true), true) + RETURN +
                 queryParamsString(queryParams) + RETURN +
                 headersString.toString() + RETURN +
                 signedHeaderKeys + RETURN +
