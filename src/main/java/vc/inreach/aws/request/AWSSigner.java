@@ -65,6 +65,7 @@ public class AWSSigner {
     private static final String SESSION_TOKEN = "x-amz-security-token";
     private static final String DATE = "date";
     private static final Escaper ESCAPER = UrlEscapers.urlPathSegmentEscaper();
+    private static final String DELETE = "DELETE";
 
     private final AWSCredentialsProvider credentialsProvider;
     private final String region;
@@ -101,7 +102,7 @@ public class AWSSigner {
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
 
         for (Map.Entry<String, Object> entry : result.entrySet()) {
-            headersString.append(headerAsString(entry)).append(RETURN);
+            headersString.append(headerAsString(entry, method)).append(RETURN);
             signedHeaders.add(entry.getKey().toLowerCase());
         }
 
@@ -133,12 +134,13 @@ public class AWSSigner {
         return AMPERSAND_JOINER.join(result.build());
     }
 
-    private String headerAsString(Map.Entry<String, Object> header) {
+    private String headerAsString(Map.Entry<String, Object> header, String method) {
         if (header.getKey().equalsIgnoreCase(CONNECTION)) {
             return CONNECTION + CLOSE;
         }
         if (header.getKey().equalsIgnoreCase(CONTENT_LENGTH) &&
-                header.getValue().equals(ZERO)) {
+                header.getValue().equals(ZERO) &&
+                method.equalsIgnoreCase(DELETE)) {
             return header.getKey().toLowerCase() + ':';
         }
         return header.getKey().toLowerCase() + ':' + header.getValue();
