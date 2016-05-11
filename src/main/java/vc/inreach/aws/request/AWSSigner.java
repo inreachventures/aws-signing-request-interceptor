@@ -65,7 +65,7 @@ public class AWSSigner {
     private static final String SESSION_TOKEN = "x-amz-security-token";
     private static final String DATE = "date";
     private static final Escaper ESCAPER = UrlEscapers.urlPathSegmentEscaper();
-    private static final String DELETE = "DELETE";
+    private static final String POST = "POST";
 
     private final AWSCredentialsProvider credentialsProvider;
     private final String region;
@@ -140,7 +140,7 @@ public class AWSSigner {
         }
         if (header.getKey().equalsIgnoreCase(CONTENT_LENGTH) &&
                 header.getValue().equals(ZERO) &&
-                method.equalsIgnoreCase(DELETE)) {
+                ! method.equalsIgnoreCase(POST)) {
             return header.getKey().toLowerCase() + ':';
         }
         return header.getKey().toLowerCase() + ':' + header.getValue();
