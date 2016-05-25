@@ -60,6 +60,7 @@ public class AWSSigner {
     private static final String EMPTY = "";
     private static final String ZERO = "0";
     private static final Joiner AMPERSAND_JOINER = Joiner.on('&');
+    private static final String HOST = "Host";
     private static final String CONTENT_LENGTH = "Content-Length";
     private static final String AUTHORIZATION = "Authorization";
     private static final String SESSION_TOKEN = "x-amz-security-token";
@@ -91,6 +92,10 @@ public class AWSSigner {
         final AWSCredentials credentials = credentialsProvider.getCredentials();
         final Map<String, Object> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         result.putAll(headers);
+        String host = result.get(HOST).toString();
+        if (host.contains(":")) {
+            result.put(HOST, host.substring(0, host.indexOf(':')));
+        }
         if (!result.containsKey(DATE)) {
             result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));
         }
