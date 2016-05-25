@@ -92,9 +92,11 @@ public class AWSSigner {
         final AWSCredentials credentials = credentialsProvider.getCredentials();
         final Map<String, Object> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         result.putAll(headers);
-        String host = result.get(HOST).toString();
-        if (host.contains(":")) {
-            result.put(HOST, host.substring(0, host.indexOf(':')));
+        final Optional<String> possibleHost = Optional.fromNullable(result.get(HOST))
+                .transform(Object::toString);
+        final int indexOfPortSymbol = possibleHost.transform(host -> host.indexOf(':')).or(-1);
+        if (indexOfPortSymbol > -1) {
+            result.put(HOST, possibleHost.get().substring(0, indexOfPortSymbol));
         }
         if (!result.containsKey(DATE)) {
             result.put(X_AMZ_DATE, now.format(BASIC_TIME_FORMAT));

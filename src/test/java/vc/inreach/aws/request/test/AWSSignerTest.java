@@ -55,7 +55,7 @@ public class AWSSignerTest {
                 .build();
         Map<String, Object> headers = ImmutableMap.<String, Object>builder()
                 .put("Date", date)
-                .put("Host", host)
+                .put("Host", host + ":80")
                 .build();
         Optional<byte[]> payload = Optional.absent();
 
