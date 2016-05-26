@@ -17,6 +17,7 @@ This depends on the AWS core SDK as it relies on an AWSCredentialsProvider to ge
 private static final String SERVICE = "es";
 private static final String REGION = "eu-west-1";
 ...
+final Supplier<LocalDateTime> clock = () -> LocalDateTime.now(ZoneOffset.UTC);
 final AWSSigner awsSigner = new AWSSigner(awsCredentialsProvider, REGION, SERVICE, clock);
 builder.addInterceptorLast(new AWSSigningRequestInterceptor(awsSigner));
 ```
