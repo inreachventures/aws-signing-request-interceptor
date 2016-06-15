@@ -65,7 +65,7 @@ public class AWSSigner {
     private static final String AUTHORIZATION = "Authorization";
     private static final String SESSION_TOKEN = "x-amz-security-token";
     private static final String DATE = "date";
-    private static final Escaper ESCAPER = UrlEscapers.urlPathSegmentEscaper();
+    private static final Escaper ESCAPER = UrlEscapers.urlFormParameterEscaper();
     private static final String POST = "POST";
 
     private final AWSCredentialsProvider credentialsProvider;
