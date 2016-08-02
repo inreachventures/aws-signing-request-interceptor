@@ -45,7 +45,6 @@ public class AWSSigner {
     private static final String AWS_4_REQUEST = "aws4_request";
     private static final Joiner JOINER = Joiner.on(';');
     private static final String CONNECTION = "connection";
-    private static final String CLOSE = ":close";
     private static final DateTimeFormatter BASIC_TIME_FORMAT = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .appendValue(ChronoField.YEAR, 4)
@@ -143,7 +142,7 @@ public class AWSSigner {
 
     private String headerAsString(Map.Entry<String, Object> header, String method) {
         if (header.getKey().equalsIgnoreCase(CONNECTION)) {
-            return CONNECTION + CLOSE;
+            return CONNECTION + ':' + header.getValue().toString().toLowerCase();
         }
         if (header.getKey().equalsIgnoreCase(CONTENT_LENGTH) &&
                 header.getValue().equals(ZERO) &&
