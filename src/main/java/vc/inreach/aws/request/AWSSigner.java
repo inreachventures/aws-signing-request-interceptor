@@ -108,8 +108,11 @@ public class AWSSigner {
         final ImmutableList.Builder<String> signedHeaders = ImmutableList.builder();
 
         for (Map.Entry<String, Object> entry : result.entrySet()) {
-            headersString.append(headerAsString(entry, method)).append(RETURN);
-            signedHeaders.add(entry.getKey().toLowerCase());
+            final Optional<String> headerAsString = headerAsString(entry, method);
+			if (headerAsString.isPresent()) {
+				headersString.append(headerAsString.get()).append(RETURN);
+				signedHeaders.add(entry.getKey().toLowerCase());
+			}
         }
 
         final String signedHeaderKeys = JOINER.join(signedHeaders.build());
@@ -140,16 +143,16 @@ public class AWSSigner {
         return AMPERSAND_JOINER.join(result.build());
     }
 
-    private String headerAsString(Map.Entry<String, Object> header, String method) {
+    private Optional<String> headerAsString(Map.Entry<String, Object> header, String method) {
         if (header.getKey().equalsIgnoreCase(CONNECTION)) {
-            return CONNECTION + ':' + header.getValue().toString().toLowerCase();
+            return Optional.absent();
         }
         if (header.getKey().equalsIgnoreCase(CONTENT_LENGTH) &&
                 header.getValue().equals(ZERO) &&
                 ! method.equalsIgnoreCase(POST)) {
-            return header.getKey().toLowerCase() + ':';
+            return Optional.of(header.getKey().toLowerCase() + ':');
         }
-        return header.getKey().toLowerCase() + ':' + header.getValue();
+        return Optional.of(header.getKey().toLowerCase() + ':' + header.getValue());
     }
 
     private String sign(String stringToSign, LocalDateTime now, AWSCredentials credentials) {
