@@ -109,15 +109,15 @@ public class AWSSigner {
 
         for (Map.Entry<String, Object> entry : result.entrySet()) {
             final Optional<String> headerAsString = headerAsString(entry, method);
-			if (headerAsString.isPresent()) {
-				headersString.append(headerAsString.get()).append(RETURN);
-				signedHeaders.add(entry.getKey().toLowerCase());
-			}
+            if (headerAsString.isPresent()) {
+                headersString.append(headerAsString.get()).append(RETURN);
+                signedHeaders.add(entry.getKey().toLowerCase());
+            }
         }
 
         final String signedHeaderKeys = JOINER.join(signedHeaders.build());
         final String canonicalRequest = method + RETURN +
-		        SdkHttpUtils.urlEncode(SdkHttpUtils.urlEncode(uri, true), true) + RETURN +
+                SdkHttpUtils.urlEncode(SdkHttpUtils.urlEncode(uri, true), true) + RETURN +
                 queryParamsString(queryParams) + RETURN +
                 headersString.toString() + RETURN +
                 signedHeaderKeys + RETURN +
@@ -135,7 +135,7 @@ public class AWSSigner {
     private String queryParamsString(Multimap<String, String> queryParams) {
         final ImmutableList.Builder<String> result = ImmutableList.builder();
         for (Map.Entry<String, Collection<String>> param : new TreeMap<>(queryParams.asMap()).entrySet()) {
-            for (String value: param.getValue()) {
+            for (String value : param.getValue()) {
                 result.add(ESCAPER.escape(param.getKey()) + '=' + ESCAPER.escape(value));
             }
         }
@@ -149,7 +149,7 @@ public class AWSSigner {
         }
         if (header.getKey().equalsIgnoreCase(CONTENT_LENGTH) &&
                 header.getValue().equals(ZERO) &&
-                ! method.equalsIgnoreCase(POST)) {
+                !method.equalsIgnoreCase(POST)) {
             return Optional.of(header.getKey().toLowerCase() + ':');
         }
         return Optional.of(header.getKey().toLowerCase() + ':' + header.getValue());
