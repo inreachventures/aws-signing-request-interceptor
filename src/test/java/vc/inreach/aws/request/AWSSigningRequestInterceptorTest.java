@@ -36,7 +36,6 @@ public class AWSSigningRequestInterceptorTest {
         interceptor = new AWSSigningRequestInterceptor(signer);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void queryParamsSupportValuesWithEquals() throws Exception {
         final String key = "scroll_id";
@@ -45,14 +44,33 @@ public class AWSSigningRequestInterceptorTest {
         final Multimap<String, String> queryParams = ImmutableListMultimap.of(key, value);
 
         when(signer.getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class))).thenReturn(ImmutableMap.of());
-        when(request.getURI()).thenReturn(new URI(url));
-        when(request.getRequestLine()).thenReturn(new BasicRequestLine("GET", url, new ProtocolVersion("HTTP", 1, 1)));
-        when(request.getAllHeaders()).thenReturn(new Header[]{});
-        when(request.getOriginal()).thenReturn(request);
+        mockRequest(url);
 
         interceptor.process(request, context);
 
         verify(request).setHeaders(new Header[]{});
         verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
+    }
+
+    @Test
+    public void queryParamsSupportValuesWithoutEquals() throws Exception {
+        final String key = "scroll_id";
+        final String url = "http://someurl.com?" + key;
+        final Multimap<String, String> queryParams = ImmutableListMultimap.of(key, "");
+
+        when(signer.getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class))).thenReturn(ImmutableMap.of());
+        mockRequest(url);
+
+        interceptor.process(request, context);
+
+        verify(request).setHeaders(new Header[]{});
+        verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
+    }
+
+    private void mockRequest(String url) throws Exception {
+        when(request.getURI()).thenReturn(new URI(url));
+        when(request.getRequestLine()).thenReturn(new BasicRequestLine("GET", url, new ProtocolVersion("HTTP", 1, 1)));
+        when(request.getAllHeaders()).thenReturn(new Header[]{});
+        when(request.getOriginal()).thenReturn(request);
     }
 }
