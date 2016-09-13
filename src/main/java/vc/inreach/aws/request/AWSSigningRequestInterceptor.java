@@ -49,6 +49,8 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
                     final String key = pair.substring(0, index);
                     final String value = pair.substring(index + 1);
                     queryParams.put(key, value);
+                } else if (pair.length() > 0) {
+                    queryParams.put(pair, "");
                 }
             }
         }
