@@ -13,6 +13,7 @@ import com.google.common.collect.Multimap;
 import org.junit.Test;
 import vc.inreach.aws.request.AWSSigner;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.TreeMap;
@@ -144,6 +145,134 @@ public class AWSSignerTest {
         assertThat(caseInsensitiveSignedHeaders).containsKey("Date");
         assertThat(caseInsensitiveSignedHeaders.get("Date")).isEqualTo(date);
         assertThat(caseInsensitiveSignedHeaders).doesNotContainKey("X-Amz-Date");
+    }
+
+    /**
+     * Test case for signing an index request with an encodable id
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testPostEncodeableId() throws Exception {
+        // GIVEN
+        // Credentials
+        String awsAccessKey = "AKIDEXAMPLE";
+        String awsSecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
+        AWSCredentials credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+        AWSCredentialsProvider awsCredentialsProvider = new StaticCredentialsProvider(credentials);
+        String region = "us-east-1";
+        String service = "service";
+
+        // Date
+        Supplier<LocalDateTime> clock = () -> LocalDateTime.of(2015, 8, 30, 12, 36, 0);
+        String date = "20150830T123600Z";
+
+        // HTTP request
+        String host = "example.amazonaws.com";
+        String uri = "/index_name/type_name/joe@example.com";
+        String method = "PUT";
+        Multimap<String, String> queryParams = ImmutableListMultimap.<String, String>builder()
+                .build();
+        Map<String, Object> headers = ImmutableMap.<String, Object>builder()
+                .put("X-Amz-Date", date)
+                .put("Host", host)
+                .build();
+        String body = "{\n"
+                + "    \"user\" : \"kimchy\",\n"
+                + "    \"post_date\" : \"2009-11-15T14:12:12\",\n"
+                + "    \"message\" : \"trying out Elasticsearch\"\n"
+                + "}";
+        Optional<byte[]> payload = Optional.of(body.getBytes("utf-8"));
+
+        String expectedAuthorizationHeader = SkdSignerUtil.getExpectedAuthorizationHeader(
+                new SkdSignerUtil.Request()
+                        .setServiceName(service)
+                        .setRegion(region)
+                        .setDate( new SimpleDateFormat("yyyyMMdd'T'HHmmssXXX").parse(date))
+                        .setHost(host)
+                        .setUri(uri)
+                        .setHttpMethod(method)
+                        .setHeaders(headers)
+                        .setQueryParams(queryParams)
+                        .setCredentialsProvider(awsCredentialsProvider)
+                        .setBody(body)
+        );
+
+        // WHEN
+        // The request is signed
+        AWSSigner signer = new AWSSigner(awsCredentialsProvider, region, service, clock);
+        Map<String, Object> signedHeaders = signer.getSignedHeaders(uri, method, queryParams, headers, payload);
+
+        // THEN
+        // The signature must match the expected signature
+        TreeMap<String, Object> caseInsensitiveSignedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSignedHeaders.putAll(signedHeaders);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Authorization");
+        assertThat(caseInsensitiveSignedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
+    }
+
+    /**
+     * Test case for signing an index request with an encodable id
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testPostEncodedId() throws Exception {
+        // GIVEN
+        // Credentials
+        String awsAccessKey = "AKIDEXAMPLE";
+        String awsSecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
+        AWSCredentials credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+        AWSCredentialsProvider awsCredentialsProvider = new StaticCredentialsProvider(credentials);
+        String region = "us-east-1";
+        String service = "service";
+
+        // Date
+        Supplier<LocalDateTime> clock = () -> LocalDateTime.of(2015, 8, 30, 12, 36, 0);
+        String date = "20150830T123600Z";
+
+        // HTTP request
+        String host = "example.amazonaws.com";
+        String uri = "/index_name/type_name/joe%40example.com";
+        String method = "PUT";
+        Multimap<String, String> queryParams = ImmutableListMultimap.<String, String>builder()
+                .build();
+        Map<String, Object> headers = ImmutableMap.<String, Object>builder()
+                .put("X-Amz-Date", date)
+                .put("Host", host)
+                .build();
+        String body = "{\n"
+                + "    \"user\" : \"kimchy\",\n"
+                + "    \"post_date\" : \"2009-11-15T14:12:12\",\n"
+                + "    \"message\" : \"trying out Elasticsearch\"\n"
+                + "}";
+        Optional<byte[]> payload = Optional.of(body.getBytes("utf-8"));
+
+        String expectedAuthorizationHeader = SkdSignerUtil.getExpectedAuthorizationHeader(
+                new SkdSignerUtil.Request()
+                        .setServiceName(service)
+                        .setRegion(region)
+                        .setDate( new SimpleDateFormat("yyyyMMdd'T'HHmmssXXX").parse(date))
+                        .setHost(host)
+                        .setUri(uri)
+                        .setHttpMethod(method)
+                        .setHeaders(headers)
+                        .setQueryParams(queryParams)
+                        .setCredentialsProvider(awsCredentialsProvider)
+                        .setBody(body)
+        );
+
+        // WHEN
+        // The request is signed
+        AWSSigner signer = new AWSSigner(awsCredentialsProvider, region, service, clock);
+        Map<String, Object> signedHeaders = signer.getSignedHeaders(uri, method, queryParams, headers, payload);
+
+        // THEN
+        // The signature must match the expected signature
+        TreeMap<String, Object> caseInsensitiveSignedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSignedHeaders.putAll(signedHeaders);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Authorization");
+        assertThat(caseInsensitiveSignedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
     }
 
     @Test
@@ -304,4 +433,56 @@ public class AWSSignerTest {
         assertThat(caseInsensitiveSignedHeaders.get("Date")).isEqualTo(date);
         assertThat(caseInsensitiveSignedHeaders).doesNotContainKey("X-Amz-Date");
     }
+
+    /**
+     * Test case given in AWS Signing Test Suite (http://docs.aws.amazon.com/general/latest/gr/signature-v4-test-suite.html)
+     * (get-utf8.*)
+     * <p>
+     * GET /ሴ HTTP/1.1
+     * Host:example.amazonaws.com
+     * X-Amz-Date:20150830T123600Z
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testGetUtf8() throws Exception {
+        // GIVEN
+        // Credentials
+        String awsAccessKey = "AKIDEXAMPLE";
+        String awsSecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
+        AWSCredentials credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+        AWSCredentialsProvider awsCredentialsProvider = new StaticCredentialsProvider(credentials);
+        String region = "us-east-1";
+        String service = "service";
+
+        // Date
+        Supplier<LocalDateTime> clock = () -> LocalDateTime.of(2015, 8, 30, 12, 36, 0);
+        String date = "20150830T123600Z";
+
+        // HTTP request
+        String host = "example.amazonaws.com";
+        String uri = "/ሴ";
+        String method = "GET";
+        Multimap<String, String> queryParams = ImmutableListMultimap.<String, String>builder()
+                .build();
+        Map<String, Object> headers = ImmutableMap.<String, Object>builder()
+                .put("Host", host)
+                .put("X-Amz-Date", date)
+                .build();
+        Optional<byte[]> payload = Optional.absent();
+
+        String expectedAuthorizationHeader = "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=host;x-amz-date, Signature=8318018e0b0f223aa2bbf98705b62bb787dc9c0e678f255a891fd03141be5d85";
+
+        // WHEN
+        // The request is signed
+        AWSSigner signer = new AWSSigner(awsCredentialsProvider, region, service, clock);
+        Map<String, Object> signedHeaders = signer.getSignedHeaders(uri, method, queryParams, headers, payload);
+
+        // THEN
+        TreeMap<String, Object> caseInsensitiveSignedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSignedHeaders.putAll(signedHeaders);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Authorization");
+        assertThat(caseInsensitiveSignedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
+    }
+
 }

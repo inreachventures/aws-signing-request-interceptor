@@ -59,7 +59,7 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
     }
 
     private String path(HttpRequest request) {
-        return ((HttpRequestWrapper) request).getURI().getPath();
+        return ((HttpRequestWrapper) request).getURI().getRawPath();
     }
 
     private Map<String, Object> headers(HttpRequest request) {
