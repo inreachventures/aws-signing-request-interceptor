@@ -117,7 +117,7 @@ public class AWSSigner {
 
         final String signedHeaderKeys = JOINER.join(signedHeaders.build());
         final String canonicalRequest = method + RETURN +
-                SdkHttpUtils.urlEncode(SdkHttpUtils.urlEncode(uri, true), true) + RETURN +
+                SdkHttpUtils.urlEncode(uri, true) + RETURN +
                 queryParamsString(queryParams) + RETURN +
                 headersString.toString() + RETURN +
                 signedHeaderKeys + RETURN +
