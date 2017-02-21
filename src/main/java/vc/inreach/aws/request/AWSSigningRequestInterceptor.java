@@ -66,6 +66,12 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
         final ImmutableMap.Builder<String, Object> headers = ImmutableMap.builder();
 
         for (Header header : request.getAllHeaders()) {
+            if (header.getName().equals("Content-Length")) {
+        		if (Integer.parseInt(header.getValue()) == 0) {
+        			headers.put(header.getName(), "");
+        			continue;
+        		}
+        	}
             headers.put(header.getName(), header.getValue());
         }
 
