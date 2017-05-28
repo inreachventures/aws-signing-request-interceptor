@@ -18,12 +18,18 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
 import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
+
+import static java.time.temporal.ChronoField.DAY_OF_MONTH;
+import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
+import static java.time.temporal.ChronoField.YEAR;
 
 /**
  * Inspired By: http://pokusak.blogspot.co.uk/2015/10/aws-elasticsearch-request-signing.html
@@ -71,6 +77,14 @@ public class AWSSigner {
     private final String region;
     private final String service;
     private final Supplier<LocalDateTime> clock;
+    private static final DateTimeFormatter BASIC_ISO_DATE;
+    static {
+        BASIC_ISO_DATE = new DateTimeFormatterBuilder()
+                .parseCaseInsensitive()
+                .appendValue(YEAR, 4)
+                .appendValue(MONTH_OF_YEAR, 2)
+                .appendValue(DAY_OF_MONTH, 2).toFormatter();
+    }
 
     public AWSSigner(AWSCredentialsProvider credentialsProvider,
                      String region,
@@ -167,7 +181,7 @@ public class AWSSigner {
     }
 
     private String getCredentialScope(LocalDateTime now) {
-        return now.format(DateTimeFormatter.BASIC_ISO_DATE) + SLASH + region + SLASH + service + AWS4_REQUEST;
+        return now.format(BASIC_ISO_DATE) + SLASH + region + SLASH + service + AWS4_REQUEST;
     }
 
     private byte[] hash(byte[] payload) {
@@ -191,7 +205,7 @@ public class AWSSigner {
 
     private byte[] getSignatureKey(LocalDateTime now, AWSCredentials credentials) {
         final byte[] kSecret = (AWS4 + credentials.getAWSSecretKey()).getBytes(Charsets.UTF_8);
-        final byte[] kDate = hmacSHA256(now.format(DateTimeFormatter.BASIC_ISO_DATE), kSecret);
+        final byte[] kDate = hmacSHA256(now.format(BASIC_ISO_DATE), kSecret);
         final byte[] kRegion = hmacSHA256(region, kDate);
         final byte[] kService = hmacSHA256(service, kRegion);
         return hmacSHA256(AWS_4_REQUEST, kService);
