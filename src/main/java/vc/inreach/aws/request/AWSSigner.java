@@ -70,7 +70,6 @@ public class AWSSigner {
     private static final String AUTHORIZATION = "Authorization";
     private static final String SESSION_TOKEN = "x-amz-security-token";
     private static final String DATE = "date";
-    private static final Escaper ESCAPER = UrlEscapers.urlFormParameterEscaper();
     private static final String POST = "POST";
 
     private final AWSCredentialsProvider credentialsProvider;
@@ -150,7 +149,7 @@ public class AWSSigner {
         final ImmutableList.Builder<String> result = ImmutableList.builder();
         for (Map.Entry<String, Collection<String>> param : new TreeMap<>(queryParams.asMap()).entrySet()) {
             for (String value : param.getValue()) {
-                result.add(ESCAPER.escape(param.getKey()) + '=' + ESCAPER.escape(value));
+                result.add(SdkHttpUtils.urlEncode(param.getKey(), false) + '=' + SdkHttpUtils.urlEncode(value, false));
             }
         }
 
