@@ -434,6 +434,59 @@ public class AWSSignerTest {
         assertThat(caseInsensitiveSignedHeaders).doesNotContainKey("X-Amz-Date");
     }
 
+    @Test
+    public void testGetQueryParamWithAsterisks() throws Exception {
+        // GIVEN
+        // Credentials
+        String awsAccessKey = "AKIDEXAMPLE";
+        String awsSecretKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
+        AWSCredentials credentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
+        AWSCredentialsProvider awsCredentialsProvider = new StaticCredentialsProvider(credentials);
+        String region = "us-east-1";
+        String service = "host";
+
+        // Date
+        Supplier<LocalDateTime> clock = () -> LocalDateTime.of(2011, 9, 9, 23, 36, 0);
+        // weird date : 09 Sep 2011 is a friday, not a monday
+        String date = "Mon, 09 Sep 2011 23:36:00 GMT";
+
+        // HTTP request
+        String host = "host.foo.com";
+        String uri = "/";
+        String method = "GET";
+        Multimap<String, String> queryParams = ImmutableListMultimap.<String, String>builder()
+                .put("_query", "ben*")
+                .build();
+        Map<String, Object> headers = ImmutableMap.<String, Object>builder()
+                .put("Date", date)
+                .put("Host", host + ":80")
+                .build();
+        Optional<byte[]> payload = Optional.absent();
+
+        // WHEN
+        // The request is signed
+        AWSSigner signer = new AWSSigner(awsCredentialsProvider, region, service, clock);
+        Map<String, Object> signedHeaders = signer.getSignedHeaders(uri, method, queryParams, headers, payload);
+
+        // THEN
+        // The signature must match the expected signature
+        String expectedSignature = "b108a8b23c3a760dc3b197ec480b20d9c9e210f4a389077f5721e458e30350bf";
+        String expectedAuthorizationHeader = format(
+                "AWS4-HMAC-SHA256 Credential=%s/20110909/%s/%s/aws4_request, SignedHeaders=date;host, Signature=%s",
+                awsAccessKey, region, service, expectedSignature
+        );
+
+        TreeMap<String, Object> caseInsensitiveSignedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSignedHeaders.putAll(signedHeaders);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Authorization");
+        assertThat(caseInsensitiveSignedHeaders.get("Authorization")).isEqualTo(expectedAuthorizationHeader);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Host");
+        assertThat(caseInsensitiveSignedHeaders.get("Host")).isEqualTo(host);
+        assertThat(caseInsensitiveSignedHeaders).containsKey("Date");
+        assertThat(caseInsensitiveSignedHeaders.get("Date")).isEqualTo(date);
+        assertThat(caseInsensitiveSignedHeaders).doesNotContainKey("X-Amz-Date");
+    }
+
     /**
      * Test case given in AWS Signing Test Suite (http://docs.aws.amazon.com/general/latest/gr/signature-v4-test-suite.html)
      * (get-utf8.*)
