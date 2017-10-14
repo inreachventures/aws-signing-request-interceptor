@@ -38,14 +38,12 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
         ));
     }
 
-    private Multimap<String, String> params(HttpRequest request) {
-        try {
-            final String rawQuery = ((HttpRequestWrapper) request).getURI().getRawQuery();
-            final String decodedQuery = URLDecoder.decode(rawQuery, StandardCharsets.UTF_8.name());
-            return params(decodedQuery);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+    private Multimap<String, String> params(HttpRequest request) throws IOException {
+        final String rawQuery = ((HttpRequestWrapper) request).getURI().getRawQuery();
+        if (Strings.isNullOrEmpty(rawQuery))
+            return ImmutableListMultimap.of();
+
+        return params(URLDecoder.decode(rawQuery, StandardCharsets.UTF_8.name()));
     }
 
     private Multimap<String, String> params(String query) {
