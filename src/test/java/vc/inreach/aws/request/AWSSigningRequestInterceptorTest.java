@@ -37,6 +37,35 @@ public class AWSSigningRequestInterceptorTest {
     }
 
     @Test
+    public void noQueryParams() throws Exception {
+        final String url = "http://someurl.com";
+        final Multimap<String, String> queryParams = ImmutableListMultimap.of();
+
+        when(signer.getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class))).thenReturn(ImmutableMap.of());
+        mockRequest(url);
+
+        interceptor.process(request, context);
+
+        verify(request).setHeaders(new Header[]{});
+        verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
+    }
+
+
+    @Test
+    public void queryParamsSupportValuesWithSpaceEncodedAsPlus() throws Exception {
+        final String url = "http://someurl.com?a=b+c";
+        final Multimap<String, String> queryParams = ImmutableListMultimap.of("a", "b c");
+
+        when(signer.getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class))).thenReturn(ImmutableMap.of());
+        mockRequest(url);
+
+        interceptor.process(request, context);
+
+        verify(request).setHeaders(new Header[]{});
+        verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
+    }
+
+    @Test
     public void queryParamsSupportValuesWithEquals() throws Exception {
         final String key = "scroll_id";
         final String value = "c2NhbjsxOzc3Mjo5WGljUUFNeVJGcVdDSzBjaUVQcDJ3OzE7dG90YWxfaGl0czo1NTg0Ow==";

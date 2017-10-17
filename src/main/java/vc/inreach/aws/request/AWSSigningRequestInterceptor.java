@@ -11,8 +11,11 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HttpContext;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.nio.charset.StandardCharsets;
+import java.net.URLDecoder;
 
 public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
 
@@ -35,8 +38,12 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
         ));
     }
 
-    private Multimap<String, String> params(HttpRequest request) {
-        return params(((HttpRequestWrapper) request).getURI().getQuery());
+    private Multimap<String, String> params(HttpRequest request) throws IOException {
+        final String rawQuery = ((HttpRequestWrapper) request).getURI().getRawQuery();
+        if (Strings.isNullOrEmpty(rawQuery))
+            return ImmutableListMultimap.of();
+
+        return params(URLDecoder.decode(rawQuery, StandardCharsets.UTF_8.name()));
     }
 
     private Multimap<String, String> params(String query) {
