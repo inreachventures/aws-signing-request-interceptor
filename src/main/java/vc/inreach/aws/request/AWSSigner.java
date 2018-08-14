@@ -157,13 +157,12 @@ public class AWSSigner {
     }
 
     private Optional<String> headerAsString(Map.Entry<String, Object> header, String method) {
-        if (header.getKey().equalsIgnoreCase(CONNECTION)) {
+        if (header.getKey().equalsIgnoreCase(CONNECTION) || header.getKey().equalsIgnoreCase(CONTENT_LENGTH)) {
+            // We don't include Content-Length in SignedHeaders, because older AWS ES domains signing verification
+            // incorrectly treat a non-POST with `Content-Length: 0` as if the header were empty (`Content-Length:`).
+            //   By not signing the Content-Length header, we make sure the calculated signature is acceptable
+            // for both older and newer AWS ES domains: the newer domains have this bug fixed.
             return Optional.absent();
-        }
-        if (header.getKey().equalsIgnoreCase(CONTENT_LENGTH) &&
-                header.getValue().equals(ZERO) &&
-                !method.equalsIgnoreCase(POST)) {
-            return Optional.of(header.getKey().toLowerCase() + ':');
         }
         return Optional.of(header.getKey().toLowerCase() + ':' + header.getValue());
     }
