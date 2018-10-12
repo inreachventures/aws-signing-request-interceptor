@@ -96,6 +96,37 @@ public class AWSSigningRequestInterceptorTest {
         verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
     }
 
+    @Test
+    public void queryParamsSupportEmptyValues() throws Exception {
+        final String key = "a";
+        final String url = "http://someurl.com?" + key + "=";
+        final Multimap<String, String> queryParams = ImmutableListMultimap.of(key, "");
+
+        when(signer.getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class))).thenReturn(ImmutableMap.of());
+        mockRequest(url);
+
+        interceptor.process(request, context);
+
+        verify(request).setHeaders(new Header[]{});
+        verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
+    }
+
+    @Test
+    public void emptyQueryParams() throws Exception {
+        final String key = "a";
+        final String value = "b";
+        final String url = "http://someurl.com?" + key + "=" + value + "&";
+        final Multimap<String, String> queryParams = ImmutableListMultimap.of(key, value);
+
+        when(signer.getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class))).thenReturn(ImmutableMap.of());
+        mockRequest(url);
+
+        interceptor.process(request, context);
+
+        verify(request).setHeaders(new Header[]{});
+        verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
+    }
+
     private void mockRequest(String url) throws Exception {
         when(request.getURI()).thenReturn(new URI(url));
         when(request.getRequestLine()).thenReturn(new BasicRequestLine("GET", url, new ProtocolVersion("HTTP", 1, 1)));
