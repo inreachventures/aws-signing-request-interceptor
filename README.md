@@ -46,7 +46,7 @@ The project can be found in maven central:
 <dependency>
     <groupId>vc.inreach.aws</groupId>
     <artifactId>aws-signing-request-interceptor</artifactId>
-    <version>0.0.21</version>
+    <version>0.0.22</version>
 </dependency>
 ```
 
