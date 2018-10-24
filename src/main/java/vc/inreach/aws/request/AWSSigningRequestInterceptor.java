@@ -52,11 +52,11 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
         if (! Strings.isNullOrEmpty(query)) {
             for (String pair : SPLITTER.split(query)) {
                 final int index = pair.indexOf('=');
-                if (index > 0 && pair.length() > index + 1) {
+                if (index > 0) {
                     final String key = pair.substring(0, index);
                     final String value = pair.substring(index + 1);
                     queryParams.put(key, value);
-                } else if (pair.length() > 0) {
+                } else {
                     queryParams.put(pair, "");
                 }
             }
