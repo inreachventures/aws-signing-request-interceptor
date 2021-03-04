@@ -11,7 +11,6 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HttpContext;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.nio.charset.StandardCharsets;
@@ -43,14 +42,16 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
         if (Strings.isNullOrEmpty(rawQuery))
             return ImmutableListMultimap.of();
 
-        return params(URLDecoder.decode(rawQuery, StandardCharsets.UTF_8.name()));
+        final Iterable<String> rawParams = SPLITTER.split(rawQuery);
+        return params(rawParams);
     }
 
-    private Multimap<String, String> params(String query) {
+    private Multimap<String, String> params(Iterable<String> rawParams) throws IOException {
         final ImmutableListMultimap.Builder<String, String> queryParams = ImmutableListMultimap.builder();
 
-        if (! Strings.isNullOrEmpty(query)) {
-            for (String pair : SPLITTER.split(query)) {
+        for (String rawParam : rawParams) {
+            if (! Strings.isNullOrEmpty(rawParam)) {
+                final String pair = URLDecoder.decode(rawParam, StandardCharsets.UTF_8.name());
                 final int index = pair.indexOf('=');
                 if (index > 0) {
                     final String key = pair.substring(0, index);
