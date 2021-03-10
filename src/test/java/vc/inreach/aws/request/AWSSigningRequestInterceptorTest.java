@@ -1,5 +1,6 @@
 package vc.inreach.aws.request;
 
+import com.amazonaws.util.SdkHttpUtils;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -17,7 +18,11 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.net.URI;
 
 import static org.mockito.Matchers.anyMapOf;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AWSSigningRequestInterceptorTest {
@@ -64,6 +69,23 @@ public class AWSSigningRequestInterceptorTest {
         verify(request).setHeaders(new Header[]{});
         verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
     }
+
+    @Test
+    public void queryParamsSupportValuesWithAmpersand() throws Exception {
+        final String valueWithAmpersand = "a & b";
+        final String encodedValue = SdkHttpUtils.urlEncode(valueWithAmpersand, false);
+        final String url = "http://someurl.com?a=" + encodedValue + "&c=d";
+        final Multimap<String, String> queryParams = ImmutableListMultimap.of("a", valueWithAmpersand, "c", "d");
+
+        when(signer.getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class))).thenReturn(ImmutableMap.of());
+        mockRequest(url);
+
+        interceptor.process(request, context);
+
+        verify(request).setHeaders(new Header[]{});
+        verify(signer).getSignedHeaders(anyString(), anyString(), eq(queryParams), anyMapOf(String.class, Object.class), any(com.google.common.base.Optional.class));
+    }
+
 
     @Test
     public void queryParamsSupportValuesWithEquals() throws Exception {
