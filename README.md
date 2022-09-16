@@ -1,6 +1,14 @@
 aws-signing-request-interceptor
 ===
 
+Deprecated
+===
+
+This has been deprecated as there are a lot more standard ways of signing requests to ElasticSearch / OpenSearch hosted in AWS. If you're looking here you probably need to find a newer client.
+
+aws-signing-request-interceptor
+---
+
 Request Interceptor for Apache Client that signs the request for AWS. 
 
 Originally created to support AWS' [Elasticsearch Service](https://aws.amazon.com/elasticsearch-service/) using the [Jest client](https://github.com/searchbox-io/Jest).
