@@ -29,11 +29,11 @@ public class AWSSigningRequestInterceptor implements HttpRequestInterceptor {
     @Override
     public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {
         request.setHeaders(headers(signer.getSignedHeaders(
-                        path(request),
-                        request.getRequestLine().getMethod(),
-                        params(request),
-                        headers(request),
-                        body(request))
+                path(request),
+                request.getRequestLine().getMethod(),
+                params(request),
+                headers(request),
+                body(request))
         ));
     }
 
